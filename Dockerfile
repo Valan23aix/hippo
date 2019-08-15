@@ -4,3 +4,9 @@ From tomcat:8-jre8
 # Maintainer 
 MAINTAINER "hipposupport" 
 COPY ./hippo.war /usr/local/tomcat/webapps
+
+or 
+
+
+MAINTAINER "hipposupport" 
+COPY */hippo.war /usr/local/tomcat/webapps

@@ -3,3 +3,6 @@ FROM tomcat:8.0
 MAINTAINER pandian
 # COPY path-to-your-application-war path-to-webapps-in-docker-tomcat
 COPY **/*.war /usr/local/tomcat/webapps/
+Expose 8090
+docker login --username manavalan --password devops123
+docker push manavalan/hippo

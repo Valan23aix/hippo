@@ -1,15 +1,60 @@
 pipeline {
- agent any
- stages {
-     stage ("SCM"){
-        steps {  git 'https://github.com/pandian3k/hippo.git'} 
-     }
-     stage ("BUILD"){
-        steps { bat label: '', script: 'mvn clean'
-bat label: '', script: 'mvn install' } 
-     }
-     stage ("DEPLOY"){
-        steps { bat label: '', script: 'xcopy /y "C:\\Program Files (x86)\\Jenkins\\workspace\\pipe\\pipline\\target\\hippo.war" "C:\\Program Files\\Apache Software Foundation\\Tomcat 8.5\\webapps"'       } 
-     }
- }
+    agent any
+    stages {
+        stage('Git') {
+            steps { git 'https://github.com/Valan23aix/hippo.git'}
+        }
+	stage('Build') {
+	            steps { sh label: '', script: 'mvn clean'
+		            sh label: '', script: 'mvn install'}
+		            }
+
+        stage('Build Docker Image') {
+            when {
+                branch 'master'
+            }
+            steps {
+                script {
+                    app = docker.build("manavalan/hippo")
+                    app.inside {
+                        sh 'echo $(curl localhost:8080)'
+                    }
+                }
+            }
+        }
+        stage('Push Docker Image') {
+            when {
+                branch 'master'
+            }
+            steps {
+                script {
+                    docker.withRegistry('https://registry.hub.docker.com', 'docker') {
+                        app.push("${env.BUILD_NUMBER}")
+                        app.push("latest")
+                    }
+                }
+            }
+        }
+        stage('DeployToProduction') {
+            when {
+                branch 'master'
+            }
+            steps {
+                input 'Deploy to Production?'
+                milestone(1)
+                withCredentials([usernamePassword(credentialsId: 'webserver', usernameVariable: 'USERNAME', passwordVariable: 'USERPASS')]) {
+                    script {
+                        sh "sshpass -p '$USERPASS' -v ssh -o StrictHostKeyChecking=no $USERNAME@$prod_ip \"docker pull manavalan/hippo:${env.BUILD_NUMBER}\""
+                        try {
+                            sh "sshpass -p '$USERPASS' -v ssh -o StrictHostKeyChecking=no $USERNAME@$prod_ip \"docker stop hippo\""
+                            sh "sshpass -p '$USERPASS' -v ssh -o StrictHostKeyChecking=no $USERNAME@$prod_ip \"docker rm hippo\""
+                        } catch (err) {
+                            echo: 'caught error: $err'
+                        }
+                        sh "sshpass -p '$USERPASS' -v ssh -o StrictHostKeyChecking=no $USERNAME@$prod_ip \"docker run --restart always --name hippo -p 8080:8080 -d manavalan/hippo:${env.BUILD_NUMBER}\""
+                    }
+                }
+            }
+        }
+    }
 }

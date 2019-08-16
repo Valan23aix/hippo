@@ -13,9 +13,7 @@ pipeline {
             steps {
                 script {
                     app = docker.build("manavalan/hippo")
-                    app.inside {
-                        sh 'echo $(curl localhost:8080)'
-                    }
+                   
                 }
             }
         }

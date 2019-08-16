@@ -10,9 +10,6 @@ pipeline {
 		            }
 
         stage('Build Docker Image') {
-            when {
-                branch 'master'
-            }
             steps {
                 script {
                     app = docker.build("manavalan/hippo")
@@ -23,10 +20,7 @@ pipeline {
             }
         }
         stage('Push Docker Image') {
-            when {
-                branch 'master'
-            }
-            steps {
+               steps {
                 script {
                     docker.withRegistry('https://registry.hub.docker.com', 'docker') {
                         app.push("${env.BUILD_NUMBER}")
